@@ -14,13 +14,15 @@
       (let ((expo (expt 2 e)))
         (cond
           [(= e 0) (div x 1)]
-          [(<= expo x) (+ (div x expo) (count-ones (- x expo) (- e 1)))]
+          [(<= expo x) (+ 1 (count-ones (- x expo) (- e 1)))]
           [(> expo x) (count-ones x (- e 1))]
         )))))
     (count-ones n 7)))
 
+(define (key x)
+  (string-append (string-append input "-") (number->string x)))
 (define keys
-  (map (lambda (x) (string-append (string-append input "-") (number->string x))) (iota 128)))
+  (map key (iota 128)))
 (define total-ones
   (map (lambda (x) (map ones x)) (map knothash (map knothashkey keys))))
 (define p1
@@ -31,5 +33,28 @@
   (list 'coord x y))
 
 (define coords (make-hashtable equal-hash equal?))
-(hashtable-set! coords (make-coord 1 1) #t)
-(write-part1 (hashtable-ref coords '(coord 1 1) #f))
+
+(define (store-coord x y)
+  (hashtable-set! coords (make-coord x y) #t))
+
+(define (store-ones num x y)
+  (letrec ((count-ones 
+    (lambda (n e)
+      (let ((expo (expt 2 e)))
+        (cond
+          [(= e 0) (if (div n 1) (store-coord (+ x 7) y))]
+          [(<= expo n) (store-coord (+ x (- 7 e)) y) (count-ones (- n expo) (- e 1))]
+          [(> expo n) (count-ones n (- e 1))]
+        )))))
+    (count-ones num 7)))
+
+(define (store-for-key key y)
+  (do ((nums key (cdr nums)) (x 0 (+ x 8)))
+    ((null? nums))
+    (store-ones (car nums) x y)
+  ))
+
+(define (khash k) (knothash (knothashkey (key k))))
+(map (lambda (i) (store-for-key (khash i) i)) (iota 128))
+
+(for-each (lambda (x) (write-part1 (hashtable-ref coords (make-coord x 8) #f))) (iota 16))
