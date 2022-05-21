@@ -35,3 +35,5 @@ scm14:
 	@scheme --script 14/day14.scm
 scm15:
 	@scheme --script 15/day15.scm
+scm16:
+	@scheme --script 16/day16.scm
