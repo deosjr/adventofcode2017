@@ -40,8 +40,7 @@
         (hashtable-set! mindex bv a)))))
 
 (define (dance ring funcs)
-  (for-each (lambda (f) (f ring)) funcs)
-  (print-ring ring))
+  (for-each (lambda (f) (f ring)) funcs))
 
 ;; im lazy so lets do string replacement in sed
 (define input 
@@ -50,7 +49,22 @@
       "cat 16/day16.input | sed -e 's/,/) /g' -e 's/x\\([0-9]\\)/,(exchange \\1/g' -e 's/p\\([a-z]\\)/,(partner \\1/g' -e 's/s\\([0-9]\\)/,(spin \\1/g' -e 's/\\// /g' -e 's/ \\([a-z]\\) / #\\\\\\1 /g' -e 's/\\([a-z]\\))/#\\\\\\1)/g'")))))
     (string-append "`(" (string-truncate! raw (- (string-length raw) 1)) "))")))
 
-;(set! input "`(,(spin 1) ,(exchange 3 4) ,(partner #\\e #\\b))")
-;(write-part1 input)
 (define moves (eval (read (open-input-string input))))
-(write-part1 (dance ring moves))
+(dance ring moves)
+(write-part1 (print-ring ring))
+
+(define dances (make-hashtable equal-hash equal?))
+(hashtable-set! dances "abcdefghijklmnop" 0)
+(hashtable-set! dances (print-ring ring) 1)
+
+; finding out that the dance loops in 36 iterations: 
+;(for-each (lambda (i) (begin (dance ring moves) 
+  ;(let* ((str (print-ring ring)) (v (hashtable-ref dances str #f)))
+    ;(if v
+      ;(write-part2 (cons (+ i 2) v))
+      ;(hashtable-set! dances (print-ring ring) (+ i 2))))))
+  ;(iota 120))
+
+(set! ring (list 0 (make-map) (make-map)))
+(for-each (lambda (i) (dance ring moves)) (iota (modulo 1000000000 36)))
+(write-part2 (print-ring ring))
