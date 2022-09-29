@@ -22,12 +22,18 @@
           0
   )))))
 
-(define (firewall file severity dlay)
+(define (stream-handle-input file continue end acc)
   (let ((line (get-line file)))
     (if (eq? #!eof line)
-      severity
-      (firewall file (+ severity (handle-line (string->list line) dlay)) dlay)
+      (end acc)
+      (stream-handle-input file continue end (continue line acc))
     )))
+
+(define (firewall file severity dlay)
+  (define (continue line acc)
+      (+ acc (handle-line (string->list line) dlay)))
+  (define (end acc) acc)
+  (stream-handle-input file continue end severity))
 
 (write-part1 (firewall (input) 0 0))
 
