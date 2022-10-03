@@ -1,6 +1,12 @@
 #! /usr/bin/scheme --script
 (load "lib/lib.scm")
 
+; destructuring let macro (my first macro!)
+; TODO multiple destructuring statements in one let
+(define-syntax let-destr
+  (syntax-rules ()
+    ((_ (x y) e1 e2 ...) (let-values (( x (apply values y) )) e1 e2 ... ))))
+
 ; TODO move to lib
 ; (sscanf "p=<1,2,3>" "p=<%d,%d,%d>") -> (1 2 3)
 ; silently fails and returns whatever succeeded so far in a list
@@ -54,7 +60,7 @@
     (list (+ p0 q0) (+ p1 q1) (+ p2 q2))))
 
 (define (vector-mul s v)
-  (let-values (( (v0 v1 v2) (apply values v)))
+  (let-destr ((v0 v1 v2) v)
     (list (* v0 s) (* v1 s) (* v2 s))))
 
 (define (parsed-input)
@@ -79,3 +85,24 @@
   (p1-rec (parsed-input) 0 (cons 0 99999999)))
 
 (write-part1 (p1))
+
+; part 2 is actually simulating everything for a bunch of steps (?)
+(define (p2)
+  (define (simulate particles n)
+    (let ((m (make-hashtable equal-hash equal?))
+          (filtered (remq 'collision particles)))
+      (if (eq? n 0) filtered
+        (begin 
+          (for-each (lambda (par)
+            (let-destr ((p v a) par)
+              (let* ((v2 (vector-add v a))
+                     (p2 (vector-add p v2)))
+                (if (hashtable-ref m p2 #f)
+                  (hashtable-set! m p2 'collision)
+                  (hashtable-set! m p2 (list p2 v2 a)))))) filtered)
+          (simulate
+            (vector->list (hashtable-values m))
+            (- n 1))))))
+  (simulate (parsed-input) 1000))
+
+(write-part2 (length (p2)))

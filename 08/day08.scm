@@ -33,6 +33,5 @@
         (if (> newvalue maxvalue) (set! maxvalue newvalue))
       ))))
 
-;(write-part1 (let-values (((ks vs) (hashtable-entries registers))) (vector-ref (vector-sort > vs) 0)))
 (write-part1 (vector-ref (vector-sort > (hashtable-values registers)) 0))
 (write-part2 maxvalue)
