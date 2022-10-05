@@ -1,7 +1,7 @@
 #! /usr/bin/scheme --script
 (load "lib/lib.scm")
 
-; destructuring let macro (my first macro!)
+;destructuring let macro (my first macro!)
 ; TODO multiple destructuring statements in one let
 (define-syntax let-destr
   (syntax-rules ()
@@ -43,12 +43,11 @@
              [else '()]
          ))]
         [else (if (eq? c (read-char strhandle)) (sscanf-rec) '())])))
-  (sscanf-rec))
+  (apply values (sscanf-rec)))
 
 (define (parseline line)
-  (let ((numbers (sscanf line "p=<%d,%d,%d>, v=<%d,%d,%d>, a=<%d,%d,%d>")))
-    (let-values (( (p0 p1 p2 v0 v1 v2 a0 a1 a2) (apply values numbers) ))
-      (list (list p0 p1 p2) (list v0 v1 v2) (list a0 a1 a2)))))
+  (let-values (( (p0 p1 p2 v0 v1 v2 a0 a1 a2)  (sscanf line "p=<%d,%d,%d>, v=<%d,%d,%d>, a=<%d,%d,%d>")))
+      (list (list p0 p1 p2) (list v0 v1 v2) (list a0 a1 a2))))
 
 (define (vector-len v)
   (let-values (( (v0 v1 v2) (apply values v)))
@@ -60,7 +59,7 @@
     (list (+ p0 q0) (+ p1 q1) (+ p2 q2))))
 
 (define (vector-mul s v)
-  (let-destr ((v0 v1 v2) v)
+  (let-values (( (v0 v1 v2) (apply values v)))
     (list (* v0 s) (* v1 s) (* v2 s))))
 
 (define (parsed-input)
