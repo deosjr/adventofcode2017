@@ -95,104 +95,64 @@
       ((null? row))
       (hashtable-set! table (cons x y) (car row)))))
 
-; practising macros a bit more, here to shorthand table lookup by xy-coordinates
-(define-syntax t
-  (syntax-rules ()
-    ((_ table x y) (hashtable-ref table (cons x y) #f) )))
+(define (retrieve size table ulhcx ulhcy)
+  (map (lambda (y)
+    (map (lambda (x)
+      (hashtable-ref table (cons (+ ulhcx x) (+ ulhcy y)) #f))
+    (iota size)))
+  (iota size)))
 
-(define (retrieve2x2 table x y)
-  (list
-    (list (t table x y) (t table (+ x 1) y))
-    (list (t table x (+ y 1)) (t table (+ x 1) (+ y 1)))))
+(define start (parse3x3 ".#./..#/###"))
 
-(define (retrieve3x3 table x y)
-  (list
-    (list (t table x y) (t table (+ x 1) y) (t table (+ x 2) y))
-    (list (t table x (+ y 1)) (t table (+ x 1) (+ y 1)) (t table (+ x 2) (+ y 1)))
-    (list (t table x (+ y 2)) (t table (+ x 1) (+ y 2)) (t table (+ x 2) (+ y 2)))))
+(define (iterate grid gridsize patternsize)
+  (let ((range (iota (/ gridsize patternsize)))
+        (nextsize (+ patternsize 1))
+        (nextgrid (make-hashtable equal-hash equal?)))
+    (map (lambda (y)
+      (map (lambda (x)
+        (let ((key (canonical (retrieve patternsize grid (* x patternsize) (* y patternsize)))))
+        (store nextgrid (hashtable-ref rules key #f) (* x nextsize) (* y nextsize))))
+      range))
+    range)
+    nextgrid))
+
+(define (gridscore grid)
+  (length (remq #\. (vector->list (hashtable-values grid)))))
+
+(define (patternscore pattern)
+  (apply + (map (lambda (l) (length (remq #\. l))) pattern)))
+
+(define (iterate-rec grid size n)
+  (if (eq? n 0)
+    (gridscore grid)
+    (let* ((even (eq? (modulo size 2) 0))
+           (newgrid (iterate grid size (if even 2 3)))
+           (newsize (if even (/ (* size 3) 2) (/ (* size 4) 3))))
+      (iterate-rec newgrid newsize (- n 1)))))
+
+(define (pattern->grid pattern)
+  (let ((grid (make-hashtable equal-hash equal?)))
+    (store grid pattern 0 0)
+    grid))
+
+(write-part1 (iterate-rec (pattern->grid start) 3 5))
 
 ; we go size 3->4->6 (also div 2!) ->9 and start again,
 ; so each 3x3 square becomes 9 3x3 squares after 3 iterations
 ; doing operation size 3 then 2x size 2
+; after that, we have 9 3x3 grids that grow independently so we can iterate on that
+; 18 iterations means 6x3 iterations like that, but we can now use caching!
+(define (iterate-3 grid)
+  (iterate (iterate (iterate grid 3 3) 4 2) 6 2))
 
-(define grid (make-hashtable equal-hash equal?))
+(define (9x9->9x3x3 grid)
+  (map (lambda (c) (retrieve 3 grid (car c) (cadr c)))
+    '((0 0) (3 0) (6 0) (0 3) (3 3) (6 3) (0 6) (3 6) (6 6))))
 
-; ITERATION 0
-(define start (parse3x3 ".#./..#/###"))
-(store grid start 0 0)
+(define (p2 pattern3x3 n)
+  (if (eq? n 0)
+    (patternscore pattern3x3)
+    (apply + (map (lambda (p) (p2 p (- n 1))) (9x9->9x3x3 (iterate-3 (pattern->grid pattern3x3)))))))
 
-; ITERATION 1
-(define grid1 (make-hashtable equal-hash equal?))
-(store grid1 (hashtable-ref rules (canonical (retrieve3x3 grid 0 0)) #f) 0 0)
-
-; ITERATION 2
-(define grid2 (make-hashtable equal-hash equal?))
-(store grid2 (hashtable-ref rules (canonical (retrieve2x2 grid1 0 0)) #f) 0 0)
-(store grid2 (hashtable-ref rules (canonical (retrieve2x2 grid1 2 0)) #f) 3 0)
-(store grid2 (hashtable-ref rules (canonical (retrieve2x2 grid1 0 2)) #f) 0 3)
-(store grid2 (hashtable-ref rules (canonical (retrieve2x2 grid1 2 2)) #f) 3 3)
-
-; ITERATION 3
-(define grid3 (make-hashtable equal-hash equal?))
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 0 0)) #f) 0 0)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 2 0)) #f) 3 0)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 4 0)) #f) 6 0)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 0 2)) #f) 0 3)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 2 2)) #f) 3 3)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 4 2)) #f) 6 3)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 0 4)) #f) 0 6)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 2 4)) #f) 3 6)
-(store grid3 (hashtable-ref rules (canonical (retrieve2x2 grid2 4 4)) #f) 6 6)
-
-; ITERATION 4
-(define grid4 (make-hashtable equal-hash equal?))
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 0 0)) #f) 0 0)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 3 0)) #f) 4 0)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 6 0)) #f) 8 0)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 0 3)) #f) 0 4)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 3 3)) #f) 4 4)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 6 3)) #f) 8 4)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 0 6)) #f) 0 8)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 3 6)) #f) 4 8)
-(store grid4 (hashtable-ref rules (canonical (retrieve3x3 grid3 6 6)) #f) 8 8)
-
-; ITERATION 5
-(define grid5 (make-hashtable equal-hash equal?))
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 0 0)) #f) 0 0)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 2 0)) #f) 3 0)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 4 0)) #f) 6 0)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 6 0)) #f) 9 0)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 8 0)) #f) 12 0)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 10 0)) #f) 15 0)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 0 2)) #f) 0 3)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 2 2)) #f) 3 3)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 4 2)) #f) 6 3)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 6 2)) #f) 9 3)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 8 2)) #f) 12 3)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 10 2)) #f) 15 3)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 0 4)) #f) 0 6)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 2 4)) #f) 3 6)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 4 4)) #f) 6 6)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 6 4)) #f) 9 6)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 8 4)) #f) 12 6)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 10 4)) #f) 15 6)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 0 6)) #f) 0 9)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 2 6)) #f) 3 9)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 4 6)) #f) 6 9)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 6 6)) #f) 9 9)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 8 6)) #f) 12 9)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 10 6)) #f) 15 9)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 0 8)) #f) 0 12)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 2 8)) #f) 3 12)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 4 8)) #f) 6 12)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 6 8)) #f) 9 12)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 8 8)) #f) 12 12)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 10 8)) #f) 15 12)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 0 10)) #f) 0 15)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 2 10)) #f) 3 15)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 4 10)) #f) 6 15)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 6 10)) #f) 9 15)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 8 10)) #f) 12 15)
-(store grid5 (hashtable-ref rules (canonical (retrieve2x2 grid4 10 10)) #f) 15 15)
-
-(write-part1 (length (remq #\. (vector->list (hashtable-values grid5)))))
+; TODO this can be faster with memoisation
+(write-part2 (p2 start 6))
