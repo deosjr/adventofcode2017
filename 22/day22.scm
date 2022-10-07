@@ -46,17 +46,36 @@
   grid)
 
 (define (burst grid pos dir)
-  (let* ((current (hashtable-ref grid pos #f))
+  (let* ((current (hashtable-ref grid pos #\.))
          (infected (eq? current #\#))
          (newdir (if infected (turn-right dir) (turn-left dir)))
          (newpos (add-coord pos newdir)))
     (hashtable-set! grid pos (if infected #\. #\#))
-    (values newpos newdir infected)))
+    (values newpos newdir (not infected))))
 
-(define (p1 grid pos dir n)
-  (if (eq? n 0) 0
+(define (p1 grid pos dir n acc)
+  (if (eq? n 0) acc
     (let-values (((newpos newdir infected) (burst grid pos dir)))
-      (+ (if infected 0 1) (p1 grid newpos newdir (- n 1)))
-    )))
+      (p1 grid newpos newdir (- n 1) (+ acc (if infected 1 0))))))
 
-(write-part1 (p1 (input) (cons 12 12) (cons 0 -1) 10000))
+(write-part1 (p1 (input) (cons 12 12) (cons 0 -1) 10000 0))
+
+; bit hacky to set state as a side-effect but otherwise would duplicate cond
+(define (burst2 grid pos dir)
+  (define (set-state s) (hashtable-set! grid pos s))
+  (define (rev d) (turn-right (turn-right d)))
+  (let* ((current (hashtable-ref grid pos #\.))
+         (newdir (cond 
+           [(eq? current #\.) (set-state #\W) (turn-left dir)]  ; clean
+           [(eq? current #\W) (set-state #\#) dir]              ; weakened
+           [(eq? current #\#) (set-state #\F) (turn-right dir)] ; infected
+           [(eq? current #\F) (set-state #\.) (rev dir)]))      ; flagged
+         (newpos (add-coord pos newdir)))
+    (values newpos newdir (eq? current #\W))))
+
+(define (p2 grid pos dir n acc)
+  (if (eq? n 0) acc
+    (let-values (((newpos newdir infected) (burst2 grid pos dir)))
+      (p2 grid newpos newdir (- n 1) (+ acc (if infected 1 0))))))
+
+(write-part2 (p2 (input) (cons 12 12) (cons 0 -1) 10000000 0))
