@@ -50,5 +50,21 @@
 (define (part1 instructions registers idx) 
   (let ((f (hashtable-ref instructions idx #f)))
     (if f (part1 instructions registers (+ idx (f registers))))))
-(write-part1 (part1 (read-input) (make-hashtable equal-hash equal?) 0))
+
+(part1 (read-input) (make-hashtable equal-hash equal?) 0)
 (write-part1 sum)
+
+; for part 2, run an optimised version of the nonprime check algorithm
+(define (prime? n)
+  (define (prime-rec? i n)
+    (if (> i (/ n 2)) #t
+      (if (eq? (modulo n i) 0) #f
+        (prime-rec? (+ i 1) n))))
+  (prime-rec? 2 n))
+
+(define (nonprimes-in-range from to)
+  (if (> from to) 0
+    (+ (nonprimes-in-range (+ from 17) to)
+       (if (prime? from) 0 1))))
+
+(write-part2 (nonprimes-in-range 106700 (+ 106700 17000)))
