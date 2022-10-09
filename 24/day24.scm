@@ -39,3 +39,15 @@
       (if (null? rec) 0 (apply max rec)))))
 
 (write-part1 (p1 0 (read-components)))
+
+; for part 2, just add a million for each added component to give
+; higher score to longer bridges. print modulo 1 million for result
+(define (p2 n components)
+  (if (null? components) 0
+    (let ((rec 
+      (map (lambda (lst)
+        (+ (score (car lst)) 1000000 (p2 (other-port n (car lst)) (cdr lst)))
+      ) (test n components))))
+      (if (null? rec) 0 (apply max rec)))))
+
+(write-part2 (modulo (p2 0 (read-components)) 1000000))
