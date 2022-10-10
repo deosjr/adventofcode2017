@@ -53,3 +53,5 @@ scm23:
 	@scheme --script 23/day23.scm
 scm24:
 	@scheme --script 24/day24.scm
+scm25:
+	@scheme --script 25/day25.scm

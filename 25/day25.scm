@@ -1,0 +1,45 @@
+#! /usr/bin/scheme --script
+(load "lib/lib.scm")
+
+; (A . ( (0 . (1 R B)) (1 . (0 L C))))
+(define (parse-state-transition input)
+  (let ((current     (sscanf (get-line input) "  If the current value is %d:"))
+        (value       (sscanf (get-line input) "    - Write the value %d."))
+        (direction   (sscanf (get-line input) "    - Move one slot to the %s."))
+        (nextstate   (sscanf (get-line input) "    - Continue with state %s.")))
+    (list current value direction nextstate)))
+
+(define (parse-state input)
+  (get-line input)
+  (let ((state (sscanf (get-line input) "In state %s:")))
+    (cons state (list (parse-state-transition input) (parse-state-transition input)))))
+
+(define (parse-turing-machine input)
+  (let* ((begin-state (sscanf (get-line input) "Begin in state %s."))
+         (max-steps   (sscanf (get-line input) "Perform a diagnostic checksum after %d steps."))
+         (state       (lambda () (parse-state input)))
+         (states      (list (state) (state) (state) (state) (state) (state))))
+    (values begin-state max-steps states)))
+
+(define (step states tape state pos)
+  (let* ((current    (hashtable-ref tape pos 0))
+         (statetable (cdr (assoc state states)))
+         (rules      (cdr (assoc current statetable)))
+         (value      (car rules))
+         (direction  (cadr rules))
+         (nextstate  (caddr rules))
+         (newpos     (if (string=? direction "left") (- pos 1) (+ pos 1))))
+    (hashtable-set! tape pos value)
+    (values newpos nextstate)))
+
+(define (p1)
+  (define (p1-rec states tape state pos n)
+    (if (eq? n 0)
+      ; number of 1's on the tape
+      (length (remq 0 (vector->list (hashtable-values tape))))
+      (let-values (((newpos nextstate) (step states tape state pos)))
+        (p1-rec states tape nextstate newpos (- n 1)))))
+  (let-values (((begin-state max-steps states) (parse-turing-machine (filehandle 25))))
+    (p1-rec states (make-eqv-hashtable) begin-state 0 max-steps)))
+
+(write-part1 (p1))

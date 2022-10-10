@@ -27,10 +27,10 @@
 (define (sscanf str fmt)
   (define strhandle (open-input-string str)) (define fmthandle (open-input-string fmt))
   ; parse a string until space or eof
-  (define (scanstr)
+  (define (scanstr until)
     (define (scanstr-rec)
       (let ((next (peek-char strhandle)))
-      (if (or (eq? next #\space) (eq? next #!eof)) '() (cons (read-char strhandle) (scanstr-rec)))))
+      (if (or (eq? next until) (eq? next #!eof)) '() (cons (read-char strhandle) (scanstr-rec)))))
     (list->string (scanstr-rec)))
   ; parse an integer
   (define (scanint)
@@ -55,7 +55,7 @@
          (let ((verb (read-char fmthandle)))
            (cond
              [(eq? verb #\d) (cons (scanint) (sscanf-rec))]
-             [(eq? verb #\s) (cons (scanstr) (sscanf-rec))]
+             [(eq? verb #\s) (cons (scanstr (peek-char fmthandle)) (sscanf-rec))]
              [(eq? verb #\c) (cons (scanchar) (sscanf-rec))]
              [else '()]
          ))]
